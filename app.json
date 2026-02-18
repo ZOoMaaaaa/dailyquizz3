@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "DailyQuizz3",
-    "slug": "DailyQuizz3",
+    "name": "DailyQuizz",
+    "slug": "DailyQuizz",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "dailyquizz3",
+    "scheme": "dailyquizz",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
@@ -16,7 +16,22 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.wappydevv.DailyQuizz",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "data": {
+            "scheme": "https",
+            "host": "dailyquizz.app",
+            "pathPrefix": "/"
+          },
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -37,6 +52,12 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "0b58b44f-47ad-40d7-b1e2-42e1ef321f6f"
+      }
+    },
+    "owner": "wappydevv"
   }
 }
