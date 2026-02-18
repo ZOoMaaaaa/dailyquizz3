@@ -5,32 +5,36 @@ import { supabase } from "../lib/supabase";
 type AuthContext = {
     session: Session | null;
     user: User | null;
+    isLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContext>({
     session: null,
-    user: null
-
+    user: null,
+    isLoading: true,
 })
 
 export default function AuthProvider({children}: PropsWithChildren) {
     const [session, setSession] = useState<Session | null>(null)
+    const [isLoading, setIsLoading] = useState(true)
 
     useEffect(() => {
         supabase.auth.getSession().then(({ data: { session } }) => {
-        setSession(session)
-    })
+            setSession(session)
+            setIsLoading(false)
+        })
 
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+            setSession(session)
+        })
 
-    supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session)
-    })
-  }, [])
+        return () => subscription.unsubscribe()
+    }, [])
+
     return(
-        <AuthContext.Provider value={{ session, user: session?.user ?? null }}>
-            {children}        
+        <AuthContext.Provider value={{ session, user: session?.user ?? null, isLoading }}>
+            {children}
         </AuthContext.Provider>
-
     )
 }
 

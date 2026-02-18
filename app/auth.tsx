@@ -4,12 +4,14 @@ import {
   useFonts,
 } from '@expo-google-fonts/orbitron';
 import { Stack, useRouter } from 'expo-router';
+import { makeRedirectUri } from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
 import React, { useEffect, useState } from 'react';
 import {
   Alert,
   AppState,
   ImageBackground,
+  Linking,
   Pressable,
   StyleSheet,
   Text,
@@ -43,24 +45,98 @@ export default function Auth() {
 
 
   async function signInWithGoogle() {
-  const redirectUrl = 'https://ptyqlexblkzlscfavlym.supabase.co/auth/v1/callback';
+    const echecAuth = async (message: string) => {
+      await supabase.auth.signOut();
+      Alert.alert('Échec de connexion Google', message);
+      router.replace('/auth');
+    };
 
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: 'google',
-    options: {
-      redirectTo: redirectUrl,
-    },
-  });
+    try {
+      const redirectUrl = makeRedirectUri();
 
-  if (error) {
-    Alert.alert('Erreur', error.message);
-    return;
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: redirectUrl,
+          skipBrowserRedirect: true,
+        },
+      });
+
+      if (error) { await echecAuth(error.message); return; }
+      if (!data?.url) { await echecAuth('Impossible de démarrer la connexion Google. Réessayez.'); return; }
+
+      console.log('[Google OAuth] redirectUrl:', redirectUrl);
+      console.log('[Google OAuth] opening URL:', data.url);
+
+      let resolved = false;
+      let subscription: ReturnType<typeof Linking.addEventListener> | null = null;
+
+      const callbackUrl = await new Promise<string | null>((resolve) => {
+        subscription = Linking.addEventListener('url', ({ url }) => {
+          console.log('[Google OAuth] Linking url reçu:', url);
+          const scheme = redirectUrl.split(':')[0];
+          if (url.startsWith(scheme + ':') && !resolved) {
+            resolved = true;
+            resolve(url);
+          }
+        });
+
+        WebBrowser.openBrowserAsync(data.url).then(() => {
+          // Attendre 1s après la fermeture du browser : sur Android, l'event
+          // Linking peut arriver légèrement après que le browser se ferme
+          setTimeout(() => {
+            if (!resolved) {
+              resolved = true;
+              resolve(null);
+            }
+          }, 1000);
+        });
+      });
+
+      subscription?.remove();
+      WebBrowser.dismissBrowser();
+
+      console.log('[Google OAuth] callbackUrl:', callbackUrl);
+
+      if (callbackUrl) {
+        console.log('[Google OAuth] callbackUrl reçu:', callbackUrl);
+
+        // Extraire les tokens depuis l'URL (fragment ou query)
+        const fragmentPart = callbackUrl.includes('#') ? callbackUrl.split('#')[1] : '';
+        const queryPart = callbackUrl.includes('?') ? callbackUrl.split('?')[1]?.split('#')[0] : '';
+        const params = new URLSearchParams(fragmentPart || queryPart || '');
+
+        const accessToken = params.get('access_token');
+        const refreshToken = params.get('refresh_token');
+
+        console.log('[Google OAuth] accessToken présent:', !!accessToken);
+
+        if (accessToken && refreshToken) {
+          const { error: sessionError } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+          if (sessionError) {
+            console.error('[Google OAuth] setSession error:', sessionError);
+            await echecAuth('La connexion Google n\'a pas pu être finalisée. Réessayez.');
+          }
+        } else {
+          // Fallback PKCE
+          const { error: sessionError } = await supabase.auth.exchangeCodeForSession(callbackUrl);
+          if (sessionError) {
+            console.error('[Google OAuth] exchangeCodeForSession error:', sessionError);
+            await echecAuth('La connexion Google n\'a pas pu être finalisée. Réessayez.');
+          }
+        }
+      } else {
+        await echecAuth('La connexion Google a échoué. Réessayez.');
+      }
+
+    } catch (err) {
+      console.error('Erreur Google sign-in :', err);
+      await echecAuth('Une erreur inattendue est survenue. Réessayez.');
+    }
   }
-
-  if (data?.url) {
-    await WebBrowser.openBrowserAsync(data.url);
-  }
-}
 
   useEffect(() => {
     if (user) {

@@ -26,7 +26,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const [fontsLoaded] = useFonts({ Orbitron_700Bold });
   const pulse = useSharedValue(1);
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
 
   const [showModal, setShowModal] = useState(false);
   const [showPseudoModal, setShowPseudoModal] = useState(false);
@@ -37,10 +37,10 @@ export default function HomeScreen() {
   }, []);
 
   useEffect(() => {
-    if (!user) {
+    if (!isLoading && !user) {
       router.replace('/auth');
     }
-  }, [user]);
+  }, [user, isLoading]);
 
   const animatedStyle = useAnimatedStyle(() => {
     return {
@@ -55,13 +55,36 @@ export default function HomeScreen() {
         return;
       }
 
-      const { data: joueur, error: joueurError } = await supabase
+      let { data: joueur, error: joueurError } = await supabase
         .from('joueurs')
         .select('pseudo, partie_quotidienne')
         .eq('id', user.id)
         .single();
 
-      if (joueurError || !joueur) {
+      // Pas de profil joueur (ex: connexion Google) → on le crée automatiquement
+      if (joueurError?.code === 'PGRST116') {
+        const { error: insertError } = await supabase
+          .from('joueurs')
+          .insert({ id: user.id });
+
+        if (insertError) {
+          Alert.alert('Erreur', 'Impossible de créer votre profil.');
+          return;
+        }
+
+        const { data: newJoueur, error: fetchError } = await supabase
+          .from('joueurs')
+          .select('pseudo, partie_quotidienne')
+          .eq('id', user.id)
+          .single();
+
+        if (fetchError || !newJoueur) {
+          Alert.alert('Erreur', 'Impossible de vérifier votre profil.');
+          return;
+        }
+
+        joueur = newJoueur;
+      } else if (joueurError || !joueur) {
         console.error('Erreur Supabase (joueur) :', joueurError);
         Alert.alert('Erreur', 'Impossible de vérifier votre profil.');
         return;
@@ -157,6 +180,12 @@ export default function HomeScreen() {
         >
           <View style={styles.modalBackground}>
             <View style={styles.modalContainer}>
+              <Pressable
+                style={styles.modalCloseButton}
+                onPress={() => setShowPseudoModal(false)}
+              >
+                <Text style={styles.modalCloseText}>✕</Text>
+              </Pressable>
               <Text style={styles.modalTitle}>Choisis un pseudo</Text>
               <Text style={styles.modalMessage}>
                 Un pseudo est requis pour jouer.
@@ -188,6 +217,13 @@ export default function HomeScreen() {
 
         <Pressable style={styles.button} onPress={() => router.push('/amis')}>
           <Text style={styles.buttonText}>👥 Amis</Text>
+        </Pressable>
+
+        <Pressable
+          style={[styles.button, styles.logoutButton]}
+          onPress={() => supabase.auth.signOut()}
+        >
+          <Text style={styles.buttonText}>🚪 Déconnexion</Text>
         </Pressable>
       </View>
     </ImageBackground>
@@ -238,6 +274,10 @@ const styles = StyleSheet.create({
     width: '80%',
     alignItems: 'center',
   },
+  logoutButton: {
+    borderColor: '#ff4444',
+    marginTop: 20,
+  },
   buttonText: {
     fontFamily: 'Orbitron_700Bold',
     fontSize: 18,
@@ -286,6 +326,17 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     textAlign: 'center',
     marginBottom: 20,
+  },
+  modalCloseButton: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    padding: 6,
+  },
+  modalCloseText: {
+    color: '#aaa',
+    fontSize: 18,
+    fontFamily: 'Orbitron_700Bold',
   },
   modalButton: {
     backgroundColor: '#00ffe7',
