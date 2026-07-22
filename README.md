@@ -1,50 +1,92 @@
-# Welcome to your Expo app 👋
+# DailyQuizz
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+> Application mobile de **quiz quotidien** : un nouveau quiz chaque jour, des scores, un classement et un système d'amis. Développée avec React Native / Expo.
 
-## Get started
+> 🔗 Démo : _à venir_ (build Expo / stores)
 
-1. Install dependencies
+---
 
-   ```bash
-   npm install
-   ```
+## Fonctionnalités
 
-2. Start the app
+- **Quiz du jour** — un quiz renouvelé quotidiennement, avec révélation des bonnes réponses en fin de partie.
+- **Score & résultats** — calcul du score et écran de récapitulatif des réponses.
+- **Classement** — leaderboard des joueurs.
+- **Amis** — ajout et suivi d'amis.
+- **Authentification** — inscription, connexion, vérification d'e-mail par lien et réinitialisation de mot de passe (Supabase Auth).
+- **Règles** — écran expliquant le fonctionnement du jeu.
+- **Expérience soignée** — retours haptiques, effets de flou, police Orbitron pour une ambiance « arcade ».
 
-   ```bash
-   npx expo start
-   ```
+## Stack technique
 
-In the output, you'll find options to open the app in a
+| Domaine | Technologies |
+|---|---|
+| Framework | Expo 53, React Native 0.79, React 19, TypeScript |
+| Navigation | Expo Router (routing par fichiers) |
+| Back-end / données | Supabase (Auth, PostgreSQL) |
+| Stockage local | AsyncStorage |
+| UI / UX | expo-blur, expo-haptics, expo-image, @expo-google-fonts/orbitron |
+| Build | EAS Build |
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+## Prérequis
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+- Node.js 20+
+- [Expo CLI](https://docs.expo.dev/) (`npx expo`)
+- Un projet [Supabase](https://supabase.com)
+- L'application [Expo Go](https://expo.dev/go) ou un émulateur Android / simulateur iOS
 
-## Get a fresh project
-
-When you're ready, run:
+## Installation
 
 ```bash
-npm run reset-project
+git clone https://github.com/ZOoMaaaaa/dailyquizz3.git
+cd dailyquizz3
+npm install
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Crée un fichier `.env` à la racine :
 
-## Learn more
+```env
+EXPO_PUBLIC_SUPABASE_URL=https://votre-projet.supabase.co
+EXPO_PUBLIC_SUPABASE_ANON_KEY=votre_cle_anon
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+## Lancer l'application
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+```bash
+npm start          # serveur de dev Expo (QR code)
+npm run android    # émulateur / appareil Android
+npm run ios        # simulateur iOS
+npm run web        # version web
+```
 
-## Join the community
+## Structure du projet
 
-Join our community of developers creating universal apps.
+```
+app/
+  index.tsx            Accueil
+  auth.tsx             Connexion
+  enregistrement.tsx   Inscription
+  dailyquizz.tsx       Quiz du jour
+  answers.tsx          Réponses
+  score.tsx            Résultat
+  ranklist.tsx         Classement
+  amis.tsx             Amis
+  regles.tsx           Règles
+  reset-password.tsx   Réinitialisation du mot de passe
+  verify/[token].tsx   Vérification d'e-mail
+lib/                   Client Supabase & helpers
+providers/             Contextes React
+assets/                Polices et images
+```
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## Build de production
+
+Le projet est configuré pour [EAS Build](https://docs.expo.dev/build/introduction/) (`eas.json`) :
+
+```bash
+eas build --platform android
+eas build --platform ios
+```
+
+## Licence
+
+Projet personnel — tous droits réservés.
